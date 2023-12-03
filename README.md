@@ -1,9 +1,9 @@
 # mdo_m4_eyes
 "fork" of https://github.com/adafruit/Adafruit_Learning_System_Guides.git /M4_Eyes directory
 
-I didn't want to fork the entire Adafruit_Learning_System_Guides so I am making a copy of the .../M4_Eyes directory and all subdirectories.
-
 This Adafruit code is incredible! I just want to make some tiny customizations for personal use.
+
+I didn't want to fork the entire Adafruit_Learning_System_Guides so I am making a copy of the .../M4_Eyes directory and all subdirectories.
 
 I am including the LICENSE from Adafruit_Learning_System_Guides - an MIT license.
 - I am not trying to pretend to be approved by Adafruit in any way; I just want to ensure that all of the Adafruit license terms are respected in this "fork".
