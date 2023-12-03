@@ -10,7 +10,9 @@ I am including the LICENSE from Adafruit_Learning_System_Guides - an MIT license
 
 **Table Of Contents**
 * [Top](#mdo_m4_eyes "Top")
+* [directory Structure](#directory-structure "directory Structure")
 * [Changes](#changes "Changes")
+  * [Switch Eye Config Each Reset](#switch-eye-config-each-reset "Switch Eye Config Each Reset")
 
 ## directory Structure
 [Top](#mdo_m4_eyes "Top")
