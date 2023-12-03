@@ -5,8 +5,8 @@ I didn't want to fork the entire Adafruit_Learning_System_Guides so I am making 
 
 This Adafruit code is incredible! I just want to make some tiny customizations for personal use.
 
-I am including the LICENSE.MD from Adafruit_Learning_System_Guides.
-- I am not trying to pretend to be sanctioned by Adafruit in any way; I just want to ensure that all of Adafruit license terms are respected in this "fork".
+I am including the LICENSE from Adafruit_Learning_System_Guides - an MIT license.
+- I am not trying to pretend to be approved by Adafruit in any way; I just want to ensure that all of the Adafruit license terms are respected in this "fork".
 
 **Table Of Contents**
 * [Top](#mdo_m4_eyes "Top")
@@ -20,4 +20,8 @@ The directory **M4_Eyes/\*** files for this repo (except for this README.md) ori
 My version of this code for the Adafruit HalloWing M4 Express https://www.adafruit.com/product/4300 is in directory **mdo_m4_eyes*.
 
 ## Changes
+[Top](#mdo_m4_eyes "Top")
+I want to switch eye configuration each time I reset or power-cycle the Hallowing M4.
+
+### Switch Eye Config Each Reset
 [Top](#mdo_m4_eyes "Top")
