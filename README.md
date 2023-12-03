@@ -36,7 +36,7 @@ The approach will be file based. I considered using EEPROM but the SAMD5 M4 uses
 
 So if using this code, do not reboot more than 10,000 times.
 
-If the file **mdo_m4_eyes.txt** is present in the root directory of the board, we will switch each time we reset. If not present, we will use the **config.eye** file in the root directory.
+If the file **mdo_m4_eyes.txt** is present in the root directory of the board, we will switch each time we reset. If mdo_m4_eyes.txt is not present, we will use the **config.eye** file in the root directory as was normally done.
 
 mdo_m4_eyes.txt will be a list of config files to cycle through separated by lf or crlf; below is a small example
 ```
