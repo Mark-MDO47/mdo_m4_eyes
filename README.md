@@ -9,7 +9,7 @@ I am including the LICENSE from Adafruit_Learning_System_Guides - an MIT license
 - I am not trying to pretend to be approved by Adafruit in any way; I just want to ensure that all of the Adafruit license terms are respected in this "fork".
 
 **Table Of Contents**
-* [Top](#mdo_m4_eyes "Top")<br>
+* [Top](#mdo_m4_eyes "Top")
 * [Directory Structure](#directory-structure "Directory Structure")
 * [Changes](#changes "Changes")
   * [Switch Eye Config Each Reset](#switch-eye-config-each-reset "Switch Eye Config Each Reset")
