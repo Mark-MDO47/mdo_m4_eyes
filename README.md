@@ -23,7 +23,9 @@ My version of this code for the Adafruit HalloWing M4 Express https://www.adafru
 
 ## Changes
 [Top](#mdo_m4_eyes "Top")
-I want to switch eye configuration each time I reset or power-cycle the Hallowing M4.
+| Description | Link |
+| --- | --- |
+| switch eye configuration each time I reset or power-cycle | [Switch Eye Config Each Reset](#switch-eye-config-each-reset "Switch Eye Config Each Reset") |
 
 ### Switch Eye Config Each Reset
 [Top](#mdo_m4_eyes "Top")
