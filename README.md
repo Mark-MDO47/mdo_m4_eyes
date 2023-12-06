@@ -13,6 +13,7 @@ I am including the LICENSE from Adafruit_Learning_System_Guides - an MIT license
 * [Directory Structure](#directory-structure "Directory Structure")
 * [Changes](#changes "Changes")
   * [Switch Eye Config Each Reset](#switch-eye-config-each-reset "Switch Eye Config Each Reset")
+    * [Curiously](#curiously "Curiously")
 
 ## Directory Structure
 [Top](#mdo_m4_eyes "Top")<br>
