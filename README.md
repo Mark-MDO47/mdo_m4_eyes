@@ -13,6 +13,7 @@ I am including the LICENSE from Adafruit_Learning_System_Guides - an MIT license
 * [Directory Structure](#directory-structure "Directory Structure")
 * [Changes](#changes "Changes")
   * [Switch Eye Config Each Reset](#switch-eye-config-each-reset "Switch Eye Config Each Reset")
+    * [Curiously](#curiously "Curiously")
 
 ## Directory Structure
 [Top](#mdo_m4_eyes "Top")<br>
@@ -53,3 +54,9 @@ hazel/config.eye
 ```
 
 This allows me to put the cycle in any order and to have some eyes show up more often than others or not appear at all.
+
+#### Curiously
+[Top](#mdo_m4_eyes "Top")<br>
+It appears as if booting without the USB plugged into a PC means that the psuedo-drive containing the files doesn't work properly at first. I am getting fails from arcada.exists() with no USB plugged in and success when the USB is plugged in. Not sure what this means - lots of code in those file access libraries to peruse.
+
+Because of this I may back up and use EEPROM after all.
