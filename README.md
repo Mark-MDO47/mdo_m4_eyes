@@ -30,7 +30,7 @@ My version of this code for the Adafruit HalloWing M4 Express https://www.adafru
 
 ### Switch Eye Config Each Reset
 [Top](#mdo_m4_eyes "Top")<br>
-I will switch among the various eye configuration files. I start with the list in the "eyes" directory (which will be copied to the root  directory for the board) but omit the hazel_128x128 since this is for the Hallowing M4 not the Hallowing M0.
+I will switch among the various eye configuration files. I start with the list in the "eyes" directory (which will be copied to the root  directory for the board) but omit the hazel_128x128 since this repo is for the Hallowing M4 not the Hallowing M0.
 
 The approach will be file based. I considered using EEPROM but the SAMD5 M4 uses a "SmartEEPROM" which is emulated from a space in the normal FLASH memory and not on a special EEPROM area. Thus using EEPROM with the M4 is approximately equivalent in terms of writes to FLASH to using the file system. FLASH is normally specified as about 10,000 writes and that is the case here, see Table 54-41 Flash Endurance and Data Retention.
 - https://www.mouser.com/datasheet/2/268/SAM_D5x_E5x_Family_Data_Sheet_DS60001507-3107027.pdf
@@ -46,7 +46,7 @@ anime/config.eye
 demon/config.eye
 ```
 
-If the code read the list above, it would boot using hazel/config.eye and re-write mdo_m4_eyes.txt to put the current configuration at the end as follows:
+If the code reads the list above, it would boot using hazel/config.eye and re-write mdo_m4_eyes.txt to put the current configuration at the end as follows:
 ```
 anime/config.eye
 demon/config.eye

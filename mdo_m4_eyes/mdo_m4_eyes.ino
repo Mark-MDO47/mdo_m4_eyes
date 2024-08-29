@@ -170,8 +170,10 @@ void setup() {
   Serial.begin(115200);
   //while(!Serial) yield();
 
-  Serial.printf("Available RAM at start: %d\n", availableRAM());
-  Serial.printf("Available flash at start: %d\n", arcada.availableFlash());
+  Serial.print("Available RAM at start: "); Serial.println(availableRAM()); // mdo_dbg
+  Serial.print("Available flash at start: "); Serial.println(arcada.availableFlash()); // mdo_dbg
+  //Serial.printf("Available RAM at start: %d\n", availableRAM());
+  //Serial.printf("Available flash at start: %d\n", arcada.availableFlash());
   yield(); // Periodic yield() makes sure mass storage filesystem stays alive
 
   // No file selector yet. In the meantime, you can override the default
@@ -182,11 +184,20 @@ void setup() {
   char *filename = (char *)"config.eye";
  
   uint32_t buttonState = arcada.readButtons();
+/*
+  Serial.print("mdo_dbg buttonState:: "); Serial.println(buttonState); // mdo_dbg
+  Serial.print("mdo_dbg   UP: "); Serial.println(ARCADA_BUTTONMASK_UP); // mdo_dbg
+  Serial.print("mdo_dbg DOWN: "); Serial.println(ARCADA_BUTTONMASK_DOWN); // mdo_dbg
+  Serial.print("mdo_dbg    A: "); Serial.println(ARCADA_BUTTONMASK_A); // mdo_dbg
+  Serial.print("mdo_dbg    B: "); Serial.println(ARCADA_BUTTONMASK_B); // mdo_dbg
+*/
   if((buttonState & ARCADA_BUTTONMASK_UP) && arcada.exists("config1.eye")) {
     filename = (char *)"config1.eye";
   } else if((buttonState & ARCADA_BUTTONMASK_A) && arcada.exists("config2.eye")) {
     filename = (char *)"config2.eye";
   } else if((buttonState & ARCADA_BUTTONMASK_DOWN) && arcada.exists("config3.eye")) {
+    filename = (char *)"config3.eye";
+  } else if((buttonState & ARCADA_BUTTONMASK_B) && arcada.exists("config4.eye")) {
     filename = (char *)"config3.eye";
   }
 
