@@ -879,7 +879,7 @@ void loop() {
       }
     }
     eye[eyeNum].column_ready = true; // Line is rendered!
-  }
+  }  // MDO47 end Cycle through eyes...
 
   // If DMA for this eye is currently busy, don't block, try next eye...
   if(eye[eyeNum].dma_busy) {
@@ -896,7 +896,7 @@ void loop() {
     // though this stalls animation for several seconds during startup.
     // DO NOT enable this line unless the fix() function isn't fixing!
     //NVIC_SystemReset();
-  }
+  } // MDO47 end if dma_busy...
 
   // At this point, above checks confirm that column is ready and DMA is free
   if(!x) { // If it's the first column...
@@ -978,7 +978,7 @@ void loop() {
       }
 #endif
       user_loop();
-    }
+    } // MDO47 end if last eye
   } // end first-column check
 
   // MUST read the booper when there’s no SPI traffic across the nose!
