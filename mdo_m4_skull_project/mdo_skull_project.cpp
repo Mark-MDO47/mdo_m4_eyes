@@ -9,9 +9,11 @@
 
 #define PIR_PIN A8           // (D2) PIR sensor on the "sensor" connector of Hallowing M4
 #define ALWAYS_DSPLY_PIN 5   // output HIGH to LED if ALWAYS-ON
-#define ALWAYS_SENSE_PIN 6   // input LOW if ALWAYS-ON
+#define ALWAYS_SENSE_PIN 6  // input LOW if ALWAYS-ON
 
 static uint32_t millisec_for_off;
+
+#define DEBUG_DSPLY_PIN 1
 
 //-----------------------------------------------------------------------------
 //
@@ -60,12 +62,26 @@ void user_loop(void) {
   uint32_t now = millis();
   uint16_t always_sense = (LOW == digitalRead(ALWAYS_SENSE_PIN));
 
+#if DEBUG_DSPLY_PIN
+  static uint32_t dbg_dsply_pin_timeout = 0;
+  static int value = HIGH;
+  if (now > dbg_dsply_pin_timeout) {
+    if (value == HIGH) value = LOW;
+    else               value = HIGH;
+
+    if (value == HIGH) Serial.println("HIGH");
+    else               Serial.println("LOW");
+    dbg_dsply_pin_timeout = 2000 + now;
+  }
+  digitalWrite(ALWAYS_DSPLY_PIN, value);
+#else // not DEBUG_DSPLY_PIN
   // set button LED to show state of ALWAYS-ON
   if (always_sense) {
     digitalWrite(ALWAYS_DSPLY_PIN, HIGH);
   } else {
     digitalWrite(ALWAYS_DSPLY_PIN, LOW);
   }
+#endif // not DEBUG_DSPLY_PIN
 
   // determine if we should extend  millisec_for_off
   if (always_sense) {
