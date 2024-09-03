@@ -39,6 +39,24 @@ void dbg_dsply_pin(uint32_t now) {
 
 //-----------------------------------------------------------------------------
 //
+// dbg_sense_pin() - tell when ALWAYS-ON state changes
+//
+#if DEBUG_SENSE_PIN
+#endif // DEBUG_SENSE_PIN
+void dbg_sense_pin(uint16_t always_sense) {
+  static int16_t always_sense_prev = -1;
+  if ((-1 == always_sense_prev) || (always_sense != always_sense_prev)) {
+    always_sense_prev = always_sense;
+    if (always_sense) {
+      Serial.println("TRUE == ALWAYS_ON");
+    } else {
+      Serial.println("FALSE == ALWAYS_ON");
+    }
+  }
+} // end dbg_sense_pin()
+
+//-----------------------------------------------------------------------------
+//
 // user_setup() - user-provided code for the setup
 //
 // Called once near the end of the setup() function. If your code requires
@@ -85,15 +103,7 @@ void user_loop(void) {
   uint16_t always_sense = (LOW == digitalRead(ALWAYS_SENSE_PIN));
 
 #if DEBUG_SENSE_PIN
-  static int16_t always_sense_prev = -1;
-  if ((-1 == always_sense_prev) || (always_sense != always_sense_prev)) {
-    always_sense_prev = always_sense;
-    if (always_sense) {
-      Serial.println("TRUE == ALWAYS_ON");
-    } else {
-      Serial.println("FALSE == ALWAYS_ON");
-    }
-  }
+  dbg_sense_pin(always_sense);
 #endif // DEBUG_SENSE_PIN
 
 #if DEBUG_DSPLY_PIN
