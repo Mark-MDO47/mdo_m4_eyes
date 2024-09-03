@@ -9,11 +9,33 @@
 
 #define PIR_PIN A8           // (D2) PIR sensor on the "sensor" connector of Hallowing M4
 #define ALWAYS_DSPLY_PIN 5   // output HIGH to LED if ALWAYS-ON
-#define ALWAYS_SENSE_PIN 6  // input LOW if ALWAYS-ON
+#define ALWAYS_SENSE_PIN 6   // input LOW if ALWAYS-ON
 
 static uint32_t millisec_for_off;
 
-#define DEBUG_DSPLY_PIN 1
+#define DEBUG_DSPLY_PIN 0   // set to 1 to blink the button LED on and off
+#define DEBUG_SENSE_PIN 0   // set to 1 to print button changes on serial port
+
+
+//-----------------------------------------------------------------------------
+//
+// dbg_dsply_pin() - blink the button LED on and off
+//
+#if DEBUG_DSPLY_PIN
+void dbg_dsply_pin(uint32_t now) {
+  static uint32_t dbg_dsply_pin_timeout = 0;
+  static int value = HIGH;
+  if (now > dbg_dsply_pin_timeout) {
+    if (value == HIGH) value = LOW;
+    else               value = HIGH;
+
+    if (value == HIGH) Serial.println("HIGH");
+    else               Serial.println("LOW");
+    dbg_dsply_pin_timeout = 2000 + now;
+  }
+  digitalWrite(ALWAYS_DSPLY_PIN, value);
+}  // end dbg_dsply_pin()
+#endif // DEBUG_DSPLY_PIN
 
 //-----------------------------------------------------------------------------
 //
@@ -27,8 +49,8 @@ static uint32_t millisec_for_off;
 //
 void user_setup(void) {
   pinMode(PIR_PIN, INPUT_PULLUP);
-  pinMode(ALWAYS_DSPLY_PIN, INPUT_PULLUP);
-  pinMode(ALWAYS_SENSE_PIN, OUTPUT);
+  pinMode(ALWAYS_DSPLY_PIN, OUTPUT);
+  pinMode(ALWAYS_SENSE_PIN, INPUT_PULLUP);
   millisec_for_off = 10000 + millis(); // we start with display on; this is TRUE first time through loop()
 }  // end user_setup()
 
@@ -62,18 +84,20 @@ void user_loop(void) {
   uint32_t now = millis();
   uint16_t always_sense = (LOW == digitalRead(ALWAYS_SENSE_PIN));
 
-#if DEBUG_DSPLY_PIN
-  static uint32_t dbg_dsply_pin_timeout = 0;
-  static int value = HIGH;
-  if (now > dbg_dsply_pin_timeout) {
-    if (value == HIGH) value = LOW;
-    else               value = HIGH;
-
-    if (value == HIGH) Serial.println("HIGH");
-    else               Serial.println("LOW");
-    dbg_dsply_pin_timeout = 2000 + now;
+#if DEBUG_SENSE_PIN
+  static int16_t always_sense_prev = -1;
+  if ((-1 == always_sense_prev) || (always_sense != always_sense_prev)) {
+    always_sense_prev = always_sense;
+    if (always_sense) {
+      Serial.println("TRUE == ALWAYS_ON");
+    } else {
+      Serial.println("FALSE == ALWAYS_ON");
+    }
   }
-  digitalWrite(ALWAYS_DSPLY_PIN, value);
+#endif // DEBUG_SENSE_PIN
+
+#if DEBUG_DSPLY_PIN
+  dbg_dsply_pin(now); // blink the button LED
 #else // not DEBUG_DSPLY_PIN
   // set button LED to show state of ALWAYS-ON
   if (always_sense) {
