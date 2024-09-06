@@ -24,12 +24,17 @@ Other directories are for my projects.
 
 ## Skull Project
 [Top](#mdo_m4_eyes "Top")<br>
+This code for the Adafruit HalloWing M4 Express https://www.adafruit.com/product/4300 is in directory **mdo_m4_skull_project**.
 
-This is the code for https://github.com/Mark-MDO47/Skull-Project
+This is the code for https://github.com/Mark-MDO47/Skull-Project.
+
+My addition to the code is in file **mdo_skull_project.cpp**. **mdo_m4_skull_project.ino is** just a copy of **M4_Eyes.ino** renamed so I can use it from this directory.
+
+The functionality is to use the PIR sensor https://www.adafruit.com/product/189 connected to the HalloWing sensor port to control backlight on/off. An LED push button switch is used to determine whether the backlight should be ALWAYS-ON or if it should come on based on the PIR sensor.
 
 ## Switch Eye Config Each Reset
 [Top](#mdo_m4_eyes "Top")<br>
-My version of this code for the Adafruit HalloWing M4 Express https://www.adafruit.com/product/4300 is in directory **mdo_m4_eyes**.
+This code for the Adafruit HalloWing M4 Express https://www.adafruit.com/product/4300 is in directory **mdo_m4_eyes**.
 
 I will switch among the various eye configuration files. I start with the list in the "eyes" directory (which will be copied to the root  directory for the board) but omit the hazel_128x128 since this repo is for the Hallowing M4 not the Hallowing M0.
 
