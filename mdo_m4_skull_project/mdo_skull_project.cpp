@@ -10,6 +10,7 @@
 #define PIR_PIN A8           // (D2) PIR sensor on the "sensor" connector of Hallowing M4
 #define ALWAYS_DSPLY_PIN 5   // output HIGH to LED if ALWAYS-ON
 #define ALWAYS_SENSE_PIN 6   // input LOW if ALWAYS-ON
+#define PIR_MIRROR_PIN  9    // mirror PIR input to other Hallowing if we are connected to PIR
 
 static uint32_t millisec_for_off;
 
@@ -66,9 +67,10 @@ void dbg_sense_pin(uint16_t always_sense) {
 // This code sets the pinMode for our pins and then puts the screen timeout in an initial state
 //
 void user_setup(void) {
-  pinMode(PIR_PIN, INPUT_PULLUP);
-  pinMode(ALWAYS_DSPLY_PIN, OUTPUT);
-  pinMode(ALWAYS_SENSE_PIN, INPUT_PULLUP);
+  pinMode(PIR_PIN, INPUT_PULLUP);          // input HIGH momentarily when detect person; PIR sensor (D2)
+  pinMode(ALWAYS_SENSE_PIN, INPUT_PULLUP); // input LOW if ALWAYS-ON
+  pinMode(ALWAYS_DSPLY_PIN, OUTPUT);       // output HIGH to LED if ALWAYS-ON
+  pinMode(PIR_MIRROR_PIN, OUTPUT);       // mirror PIR_PIN to other Hallowing if we are connected to PIR
   millisec_for_off = 10000 + millis(); // we start with display on; this is TRUE first time through loop()
 }  // end user_setup()
 
@@ -91,16 +93,23 @@ void user_setup(void) {
 // increments, it's better to use millis() or micros() and work
 // algebraically with elapsed times instead.
 //
+// https://github.com/Mark-MDO47
 // This code sets checks our two input pins and the screen timeout
-//    It sets the output pin to light the button LED to show our processing state
+//    It copies the input from the PIR sensor to the other Hallowing. Wiring will choose which one
+//        has the PIR and which one has the mirror input.
+//    It sets the ALWAYS_DSPLY_PINs output pin to light the button LED to show our ALWAYS-ON processing state
 //    It determines if the screen timeout should be extended and does so if needed
 //    It checks if the screen timeout expired and turns the screen backlight off if needed
-//
-// This code is designed to be easy to read, not fast. It is fast enough.
+// This code is designed to be easy to read, not fast as possible. It is fast enough.
 //
 void user_loop(void) {
   uint32_t now = millis();
   uint16_t always_sense = (LOW == digitalRead(ALWAYS_SENSE_PIN));
+  uint8_t  pir_value = digitalRead(PIR_PIN); // input HIGH momentarily when detect person; PIR sensor (D2)
+
+  // if two Hallowing M4 and we are the one connected to PIR sensor
+  //    mirror the value to the other one
+  digitalWrite(PIR_MIRROR_PIN, pir_value);
 
 #if DEBUG_SENSE_PIN
   dbg_sense_pin(always_sense);
@@ -109,7 +118,7 @@ void user_loop(void) {
 #if DEBUG_DSPLY_PIN
   dbg_dsply_pin(now); // blink the button LED
 #else // not DEBUG_DSPLY_PIN
-  // set button LED to show state of ALWAYS-ON
+  // set button LED to show state of ALWAYS-ON; OTHER to pretend to other Hallowing that we are PIR
   if (always_sense) {
     digitalWrite(ALWAYS_DSPLY_PIN, HIGH);
   } else {
@@ -120,14 +129,14 @@ void user_loop(void) {
   // determine if we should extend  millisec_for_off
   if (always_sense) {
     millisec_for_off = 500 + now; // rapid refresh so respond quickly if user turns button off
-  } else if (HIGH == digitalRead(PIR_PIN)) {
+  } else if (HIGH == pir_value) {
     millisec_for_off = 20000 + now; // PIR detect causes long timeout
   }
 
   // if later than millisec_for_off, turn backlight off otherwise turn it on
-  // NOTE: it will be more than 49 days before we overflow the millisec counts
+  // NOTE: it will be more than 49 days before we overflow the millisec counts;
   //   battery would be discharged long before that
-  // Will need to get more complicated if powering with wall power.
+  // TODO - Will need to handle wraparound if powering with wall power.
   if (now > millisec_for_off) {
     arcada.setBacklight(0); // turn screen off
   } else {
