@@ -10,7 +10,8 @@
 #define PIR_PIN A8           // (D2) PIR sensor on the "sensor" connector of Hallowing M4
 #define ALWAYS_DSPLY_PIN 5   // output HIGH to LED if ALWAYS-ON
 #define ALWAYS_SENSE_PIN 6   // input LOW if ALWAYS-ON
-#define PIR_MIRROR_PIN  9    // mirror PIR input to other Hallowing if we are connected to PIR
+#define SCNDEYE_DSPLY_ON 9   // mirror Display On to other Hallowing if we are primary Hallowing
+#define SCNDEYE_1ST_EYE 10   // HIGH if primary Hallowing; LOW if secondary Hallowing
 
 static uint32_t millisec_for_off;
 
@@ -44,11 +45,11 @@ void dbg_dsply_pin(uint32_t now) {
 //
 #if DEBUG_SENSE_PIN
 #endif // DEBUG_SENSE_PIN
-void dbg_sense_pin(uint16_t always_sense) {
-  static int16_t always_sense_prev = -1;
-  if ((-1 == always_sense_prev) || (always_sense != always_sense_prev)) {
-    always_sense_prev = always_sense;
-    if (always_sense) {
+void dbg_sense_pin(uint16_t always_sense_or_2nd_display_off) {
+  static int16_t always_sense_or_2nd_display_off_prev = -1;
+  if ((-1 == always_sense_or_2nd_display_off_prev) || (always_sense_or_2nd_display_off != always_sense_or_2nd_display_off_prev)) {
+    always_sense_or_2nd_display_off_prev = always_sense_or_2nd_display_off;
+    if (always_sense_or_2nd_display_off) {
       Serial.println("TRUE == ALWAYS_ON");
     } else {
       Serial.println("FALSE == ALWAYS_ON");
@@ -70,7 +71,9 @@ void user_setup(void) {
   pinMode(PIR_PIN, INPUT_PULLUP);          // input HIGH momentarily when detect person; PIR sensor (D2)
   pinMode(ALWAYS_SENSE_PIN, INPUT_PULLUP); // input LOW if ALWAYS-ON
   pinMode(ALWAYS_DSPLY_PIN, OUTPUT);       // output HIGH to LED if ALWAYS-ON
-  pinMode(PIR_MIRROR_PIN, OUTPUT);       // mirror PIR_PIN to other Hallowing if we are connected to PIR
+  pinMode(SCNDEYE_DSPLY_ON, OUTPUT);       // output mirror Display On to other Hallowing if we are primary Hallowing
+  pinMode(SCNDEYE_1ST_EYE, INPUT_PULLUP); // input HIGH if primary Hallowing; LOW if secondary Hallowing
+  
   millisec_for_off = 10000 + millis(); // we start with display on; this is TRUE first time through loop()
 }  // end user_setup()
 
@@ -104,22 +107,19 @@ void user_setup(void) {
 //
 void user_loop(void) {
   uint32_t now = millis();
-  uint16_t always_sense = (LOW == digitalRead(ALWAYS_SENSE_PIN));
+  uint16_t always_sense_or_2nd_display_off = (LOW == digitalRead(ALWAYS_SENSE_PIN));
   uint8_t  pir_value = digitalRead(PIR_PIN); // input HIGH momentarily when detect person; PIR sensor (D2)
 
-  // if two Hallowing M4 and we are the one connected to PIR sensor
-  //    mirror the value to the other one
-  digitalWrite(PIR_MIRROR_PIN, pir_value);
 
 #if DEBUG_SENSE_PIN
-  dbg_sense_pin(always_sense);
+  dbg_sense_pin(always_sense_or_2nd_display_off);
 #endif // DEBUG_SENSE_PIN
 
 #if DEBUG_DSPLY_PIN
   dbg_dsply_pin(now); // blink the button LED
 #else // not DEBUG_DSPLY_PIN
   // set button LED to show state of ALWAYS-ON; OTHER to pretend to other Hallowing that we are PIR
-  if (always_sense) {
+  if (always_sense_or_2nd_display_off) {
     digitalWrite(ALWAYS_DSPLY_PIN, HIGH);
   } else {
     digitalWrite(ALWAYS_DSPLY_PIN, LOW);
@@ -127,7 +127,7 @@ void user_loop(void) {
 #endif // not DEBUG_DSPLY_PIN
 
   // determine if we should extend  millisec_for_off
-  if (always_sense) {
+  if (always_sense_or_2nd_display_off) {
     millisec_for_off = 500 + now; // rapid refresh so respond quickly if user turns button off
   } else if (HIGH == pir_value) {
     millisec_for_off = 20000 + now; // PIR detect causes long timeout
@@ -137,12 +137,27 @@ void user_loop(void) {
   // NOTE: it will be more than 49 days before we overflow the millisec counts;
   //   battery would be discharged long before that
   // TODO - Will need to handle wraparound if powering with wall power.
-  if (now > millisec_for_off) {
-    arcada.setBacklight(0); // turn screen off
+  //
+  // if two Hallowing M4 and we are the primary one connected to PIR sensor
+  //    mirror the display onvalue to the other one
+  //
+  if (HIGH == digitalRead(SCNDEYE_1ST_EYE)) {
+    // we are primary Hallowing; use timer and notify other side
+    if (now > millisec_for_off) {
+      arcada.setBacklight(0); // turn screen off
+      digitalWrite(SCNDEYE_DSPLY_ON, LOW);
+    } else {
+      arcada.setBacklight(255); // turn screen on
+      digitalWrite(SCNDEYE_DSPLY_ON, HIGH);
+    }
   } else {
-    arcada.setBacklight(255); // turn screen on
-  }
-  
+    // we are 2nd Hallowing; follow directions from primary
+    if (always_sense_or_2nd_display_off) {
+      arcada.setBacklight(0); // turn screen off
+    } else {
+      arcada.setBacklight(255); // turn screen on
+    }
+  } // end check if primary or secondary eye
 }  // end user_loop()
 
 #endif // enable/disable this user file
