@@ -3,20 +3,43 @@
 // Date:    2024-09-01
 // License: MIT
 //
+// https://github.com/Mark-MDO47
+// This code sets checks our two input pins and the screen timeout
+//    It determines if the screen timeout should be extended and does so if needed
+//    It checks if the screen timeout expired and turns the screen backlight off if needed
+//    It sets the ALWAYS_DSPLY_PIN output pin to light the button LED to show our ALWAYS-ON processing state
+//    It copies the calculated display on/off value to the secondary Hallowing
+//        or (if secondary) uses on/off from primary to turn secondary display on/off.
+// This code is designed to be easy to read, not fast as possible. It is fast enough.
+//
+// Optional 2nd Eye accomodation uses pins SCNDEYE_1ST_EYE_PIN (input) and SCNDEYE_DSPLY_ON_PIN (output)
+//    primary eye has no connect for SCNDEYE_1ST_EYE_PIN so it reads HIGH (due to internal pullup)
+//    2nd eye connects SCNDEYE_1ST_EYE_PIN to ground so it reads LOW
+//
+//    primary eye calculates display on/off based on PIR and ALWAYS_SENSE_PIN; sends to SCNDEYE_DSPLY_ON_PIN
+//    secondary eye reads display on/off from ALWAYS_SENSE_PIN (connected to primary SCNDEYE_DSPLY_ON_PIN)
+//
+
 #if 1 // enables this user file
 
 #include "globals.h"
 
-#define PIR_PIN A8           // (D2) PIR sensor on the "sensor" connector of Hallowing M4
-#define ALWAYS_DSPLY_PIN 5   // output HIGH to LED if ALWAYS-ON
-#define ALWAYS_SENSE_PIN 6   // input LOW if ALWAYS-ON
-#define SCNDEYE_DSPLY_ON 9   // mirror Display On to other Hallowing if we are primary Hallowing
-#define SCNDEYE_1ST_EYE 10   // HIGH if primary Hallowing; LOW if secondary Hallowing
+#define PIR_PIN             A8   // (D2) PIR sensor on the "sensor" connector of Hallowing M4
+#define ALWAYS_DSPLY_PIN     5   // output HIGH to LED if ALWAYS-ON
+#define ALWAYS_SENSE_PIN     6   // input LOW if ALWAYS-ON
+#define SCNDEYE_DSPLY_ON_PIN 9   // mirror Display On to other Hallowing if we are primary Hallowing
+#define SCNDEYE_1ST_EYE_PIN 10   // HIGH if primary Hallowing; LOW if secondary Hallowing
 
 static uint32_t millisec_for_off;
 
+#define MSEC_ON_4_PIR 20000   // number of milliseconds to stay on past last PIR HIGH reading
+                              // this value chosen so there can be interaction and surprise with on/off
+#define MSEC_ON_4_ALWAYS 500  // number of milliseconds to stay on past last button ALWAYS-ON
+                              // this value chosen so there is fairly fast reaction to button change
+
 #define DEBUG_DSPLY_PIN 0   // set to 1 to blink the button LED on and off
 #define DEBUG_SENSE_PIN 0   // set to 1 to print button changes on serial port
+                            // NOTE: Serial.begin() called in *.ino setup() routine after calling us
 
 
 //-----------------------------------------------------------------------------
@@ -68,13 +91,13 @@ void dbg_sense_pin(uint16_t always_sense_or_2nd_display_off) {
 // This code sets the pinMode for our pins and then puts the screen timeout in an initial state
 //
 void user_setup(void) {
-  pinMode(PIR_PIN, INPUT_PULLUP);          // input HIGH momentarily when detect person; PIR sensor (D2)
-  pinMode(ALWAYS_SENSE_PIN, INPUT_PULLUP); // input LOW if ALWAYS-ON
-  pinMode(ALWAYS_DSPLY_PIN, OUTPUT);       // output HIGH to LED if ALWAYS-ON
-  pinMode(SCNDEYE_DSPLY_ON, OUTPUT);       // output mirror Display On to other Hallowing if we are primary Hallowing
-  pinMode(SCNDEYE_1ST_EYE, INPUT_PULLUP); // input HIGH if primary Hallowing; LOW if secondary Hallowing
+  pinMode(PIR_PIN, INPUT_PULLUP);             // input HIGH momentarily when detect person; PIR sensor (D2)
+  pinMode(ALWAYS_SENSE_PIN, INPUT_PULLUP);    // input LOW if ALWAYS-ON
+  pinMode(ALWAYS_DSPLY_PIN, OUTPUT);          // output HIGH to LED if ALWAYS-ON
+  pinMode(SCNDEYE_DSPLY_ON_PIN, OUTPUT);      // output mirror Display On to other Hallowing if we are primary Hallowing
+  pinMode(SCNDEYE_1ST_EYE_PIN, INPUT_PULLUP); // input HIGH if primary Hallowing; LOW if secondary Hallowing
   
-  millisec_for_off = 10000 + millis(); // we start with display on; this is TRUE first time through loop()
+  millisec_for_off = MSEC_ON_4_PIR + millis(); // we start with display on; this is TRUE first time through loop()
 }  // end user_setup()
 
 //-----------------------------------------------------------------------------
@@ -98,17 +121,24 @@ void user_setup(void) {
 //
 // https://github.com/Mark-MDO47
 // This code sets checks our two input pins and the screen timeout
-//    It copies the input from the PIR sensor to the other Hallowing. Wiring will choose which one
-//        has the PIR and which one has the mirror input.
-//    It sets the ALWAYS_DSPLY_PINs output pin to light the button LED to show our ALWAYS-ON processing state
 //    It determines if the screen timeout should be extended and does so if needed
 //    It checks if the screen timeout expired and turns the screen backlight off if needed
+//    It sets the ALWAYS_DSPLY_PIN output pin to light the button LED to show our ALWAYS-ON processing state
+//    It copies the calculated display on/off value to the secondary Hallowing
+//        or (if secondary) uses on/off from primary to turn secondary display on/off.
 // This code is designed to be easy to read, not fast as possible. It is fast enough.
+//
+// Optional 2nd Eye accomodation uses pins SCNDEYE_1ST_EYE_PIN (input) and SCNDEYE_DSPLY_ON_PIN (output)
+//    primary eye has no connect for SCNDEYE_1ST_EYE_PIN so it reads HIGH (due to internal pullup)
+//    2nd eye connects SCNDEYE_1ST_EYE_PIN to ground so it reads LOW
+//
+//    primary eye calculates display on/off based on PIR and ALWAYS_SENSE_PIN; sends to SCNDEYE_DSPLY_ON_PIN
+//    secondary eye reads display on/off from ALWAYS_SENSE_PIN (connected to primary SCNDEYE_DSPLY_ON_PIN)
 //
 void user_loop(void) {
   uint32_t now = millis();
   uint16_t always_sense_or_2nd_display_off = (LOW == digitalRead(ALWAYS_SENSE_PIN));
-  uint8_t  pir_value = digitalRead(PIR_PIN); // input HIGH momentarily when detect person; PIR sensor (D2)
+  uint8_t  pir_value = digitalRead(PIR_PIN); // input is HIGH ~2 sec. when detect person; PIR sensor (D2)
 
 
 #if DEBUG_SENSE_PIN
@@ -118,7 +148,7 @@ void user_loop(void) {
 #if DEBUG_DSPLY_PIN
   dbg_dsply_pin(now); // blink the button LED
 #else // not DEBUG_DSPLY_PIN
-  // set button LED to show state of ALWAYS-ON; OTHER to pretend to other Hallowing that we are PIR
+  // set button LED to show state of ALWAYS-ON
   if (always_sense_or_2nd_display_off) {
     digitalWrite(ALWAYS_DSPLY_PIN, HIGH);
   } else {
@@ -128,9 +158,9 @@ void user_loop(void) {
 
   // determine if we should extend  millisec_for_off
   if (always_sense_or_2nd_display_off) {
-    millisec_for_off = 500 + now; // rapid refresh so respond quickly if user turns button off
+    millisec_for_off = MSEC_ON_4_ALWAYS + now; // rapid refresh so respond quickly if user turns button off
   } else if (HIGH == pir_value) {
-    millisec_for_off = 20000 + now; // PIR detect causes long timeout
+    millisec_for_off = MSEC_ON_4_PIR + now; // PIR detect causes long timeout
   }
 
   // if later than millisec_for_off, turn backlight off otherwise turn it on
@@ -141,14 +171,14 @@ void user_loop(void) {
   // if two Hallowing M4 and we are the primary one connected to PIR sensor
   //    mirror the display onvalue to the other one
   //
-  if (HIGH == digitalRead(SCNDEYE_1ST_EYE)) {
+  if (HIGH == digitalRead(SCNDEYE_1ST_EYE_PIN)) {
     // we are primary Hallowing; use timer and notify other side
     if (now > millisec_for_off) {
       arcada.setBacklight(0); // turn screen off
-      digitalWrite(SCNDEYE_DSPLY_ON, LOW);
+      digitalWrite(SCNDEYE_DSPLY_ON_PIN, LOW);
     } else {
       arcada.setBacklight(255); // turn screen on
-      digitalWrite(SCNDEYE_DSPLY_ON, HIGH);
+      digitalWrite(SCNDEYE_DSPLY_ON_PIN, HIGH);
     }
   } else {
     // we are 2nd Hallowing; follow directions from primary
