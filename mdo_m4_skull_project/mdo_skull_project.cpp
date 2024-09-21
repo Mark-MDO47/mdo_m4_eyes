@@ -17,6 +17,7 @@
 //    Ssecondary eye reads DISPLAY_FORCE_ON_PIN (from primary SCNDEYE_DSPLY_ON_PIN) to turn display on or off
 //
 // This code is designed to be easy to read, not fast as possible. It is fast enough.
+//    Admittedly the debug code makes it a little messy, but it is useful when things don't work.
 //
 
 #if 1 // enables this user file
