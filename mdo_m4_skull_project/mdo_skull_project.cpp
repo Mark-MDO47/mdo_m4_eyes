@@ -3,12 +3,15 @@
 // Date:    2024-09-01
 // License: MIT
 //
-// https://github.com/Mark-MDO47
-// This code sets checks our two input pins and the screen timeout
+// This code runs unchanged in both primary eye and secondary (2nd) eye;
+//        pin SCNDEYE_1ST_EYE_PIN tells us which one we are.
+//
+// Primary eye: code sets checks our FORCE_ON and MOTION_SENSOR input pins and the screen timeout
 //    It determines if the screen timeout should be extended and does so if needed
 //    It checks if the screen timeout expired and turns the screen backlight off if needed
 //    It sets the DISPLAY_FORCE_ON_LED_PIN output pin to light the button LED to show our ALWAYS-ON processing state
-//    It copies the calculated display on/off value to the secondary Hallowing
+//    It copies the calculated display on/off value to the secondary Hallowing using SCNDEYE_DSPLY_ON_PIN
+// Secondary eye: code merely follows
 //        or (if secondary) uses on/off from primary to turn secondary display on/off.
 // This code is designed to be easy to read, not fast as possible. It is fast enough.
 //
@@ -29,6 +32,14 @@
 #define DISPLAY_FORCE_ON_PIN       6   // input LOW if backlight forced ALWAYS-ON
 #define SCNDEYE_DSPLY_ON_PIN       9   // mirror Display On to other Hallowing if we are primary Hallowing
 #define SCNDEYE_1ST_EYE_PIN       10   // HIGH if primary Hallowing; LOW if secondary Hallowing
+// NOTE:
+//   SCNDEYE_DSPLY_ON_PIN unused on 2nd eye - we use this fact in setup()
+//   DISPLAY_FORCE_ON_LED_PIN unused on 2nd eye - this fact is not used
+//   MOTION_SENSOR_PIN unused on 2nd eye - this fact is not used
+// NOTE:
+//   DISPLAY_FORCE_ON_PIN used differently on primary and secondary eye
+//      primary: used to sense state of button that sets ALWAYS-ON on or off
+//      secondary: used to sense output from primary from SCNDEYE_DSPLY_ON_PIN
 
 static uint32_t millisec_for_off;
 
@@ -98,6 +109,8 @@ void user_setup(void) {
   pinMode(SCNDEYE_1ST_EYE_PIN, INPUT_PULLUP);  // input HIGH if primary Hallowing; LOW if secondary Hallowing
   
   millisec_for_off = MSEC_ON_4_PIR + millis(); // we start with display on; this is TRUE first time through loop()
+  digitalWrite(SCNDEYE_DSPLY_ON_PIN, HIGH);    //   not sure how long the rest of setup will take so start HIGH
+                                               //   SCNDEYE_DSPLY_ON_PIN unused on 2nd eye
 }  // end user_setup()
 
 //-----------------------------------------------------------------------------
