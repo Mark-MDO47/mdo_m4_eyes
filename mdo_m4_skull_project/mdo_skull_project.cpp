@@ -6,21 +6,17 @@
 // This code runs unchanged in both primary eye and secondary (2nd) eye;
 //        pin SCNDEYE_1ST_EYE_PIN tells us which one we are.
 //
-// Primary eye: code sets checks our FORCE_ON and MOTION_SENSOR input pins and the screen timeout
+// Primary eye: code checks our FORCE_ON and MOTION_SENSOR input pins and the sets screen timeout
+//    Primary eye has no connect for SCNDEYE_1ST_EYE_PIN so it reads HIGH (due to internal pullup)
 //    It determines if the screen timeout should be extended and does so if needed
 //    It checks if the screen timeout expired and turns the screen backlight off if needed
+//      It copies the calculated display on/off value to the secondary Hallowing using SCNDEYE_DSPLY_ON_PIN
 //    It sets the DISPLAY_FORCE_ON_LED_PIN output pin to light the button LED to show our ALWAYS-ON processing state
-//    It copies the calculated display on/off value to the secondary Hallowing using SCNDEYE_DSPLY_ON_PIN
-// Secondary eye: code merely follows
-//        or (if secondary) uses on/off from primary to turn secondary display on/off.
+// Secondary eye: it merely uses on/off from primary SCNDEYE_DSPLY_ON_PIN to turn secondary display on/off.
+//    Secondary eye has grounded SCNDEYE_1ST_EYE_PIN so it reads LOW
+//    Ssecondary eye reads DISPLAY_FORCE_ON_PIN (from primary SCNDEYE_DSPLY_ON_PIN) to turn display on or off
+//
 // This code is designed to be easy to read, not fast as possible. It is fast enough.
-//
-// Optional 2nd Eye accomodation uses pins SCNDEYE_1ST_EYE_PIN (input) and SCNDEYE_DSPLY_ON_PIN (output)
-//    primary eye has no connect for SCNDEYE_1ST_EYE_PIN so it reads HIGH (due to internal pullup)
-//    2nd eye connects SCNDEYE_1ST_EYE_PIN to ground so it reads LOW
-//
-//    primary eye calculates display on/off based on PIR and DISPLAY_FORCE_ON_PIN; sends to SCNDEYE_DSPLY_ON_PIN
-//    secondary eye reads display on/off from DISPLAY_FORCE_ON_PIN (connected to primary SCNDEYE_DSPLY_ON_PIN)
 //
 
 #if 1 // enables this user file
@@ -29,7 +25,8 @@
 
 #define MOTION_SENSOR_PIN         A8   // (D2) PIR sensor on the "sensor" connector of Hallowing M4
 #define DISPLAY_FORCE_ON_LED_PIN   5   // output HIGH to LED if backlight forced ALWAYS-ON
-#define DISPLAY_FORCE_ON_PIN       6   // input LOW if backlight forced ALWAYS-ON
+#define DISPLAY_FORCE_ON_PIN       6   // input primary eye: LOW if backlight forced ALWAYS-ON
+                                       // input secondary eye: HIGH turns backlight ON, LOW turns OFF
 #define SCNDEYE_DSPLY_ON_PIN       9   // mirror Display On to other Hallowing if we are primary Hallowing
 #define SCNDEYE_1ST_EYE_PIN       10   // HIGH if primary Hallowing; LOW if secondary Hallowing
 // NOTE:
