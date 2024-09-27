@@ -1,4 +1,6 @@
 // Skull Project - https://github.com/Mark-MDO47/Skull-Project
+// This code -     https://github.com/Mark-MDO47/mdo_m4_eyes.git
+//                   directory mdo_m4_skull_project
 // Author:  https://github.com/Mark-MDO47
 // Date:    2024-09-01
 // License: MIT
@@ -20,6 +22,9 @@
 // This code is designed to be easy to read, not fast as possible. It is fast enough.
 //    Admittedly the debug code makes it a little messy, but it is useful when things don't work.
 //    Okay, all the differences between primary and secondary eye are really making it messy. Sorry.
+//        Because of this I am removing the debug code. If you still want to see the debug code, look in
+//        https://github.com/Mark-MDO47/mdo_m4_eyes.git
+//        SHA ID 43f5a7991704ac46a373ff689222126ea42f681a
 //
 
 #if 1 // enables this user file
@@ -55,52 +60,6 @@ static uint32_t millisec_for_reset_off;    // secondary - when to de-assert rese
 
 #define MSEC_ON_4_RESET 300    // number of milliseconds that secondary eye asserts reset to primary eye
 #define MSEC_WAIT_4_RESET 7000 // number of milliseconds that secondary eye waits before asserting reset
-
-
-#define DEBUG_DSPLY_PIN 0   // set to 1 to blink the button LED on and off
-#define DEBUG_SENSE_PIN 0   // set to 1 to print button changes on serial port
-                            // NOTE: Serial.begin() called in *.ino setup() routine after calling us
-
-
-//-----------------------------------------------------------------------------
-//
-// dbg_dsply_pin() - blink the button LED on and off
-//    This routine designed to debug the primary HalloWing
-//
-#if DEBUG_DSPLY_PIN
-void dbg_dsply_pin(uint32_t now) {
-  static uint32_t dbg_dsply_pin_timeout = 0;
-  static int value = HIGH;
-  if (now > dbg_dsply_pin_timeout) {
-    if (value == HIGH) value = LOW;
-    else               value = HIGH;
-
-    if (value == HIGH) Serial.println("HIGH");
-    else               Serial.println("LOW");
-    dbg_dsply_pin_timeout = 2000 + now;
-  }
-  digitalWrite(DISPLAY_FORCE_ON_LED_PIN, value);
-}  // end dbg_dsply_pin()
-#endif // DEBUG_DSPLY_PIN
-
-//-----------------------------------------------------------------------------
-//
-// dbg_sense_pin() - tell when forcing ALWAYS-ON state changes
-//    This routine designed to debug the primary HalloWing
-//
-#if DEBUG_SENSE_PIN
-#endif // DEBUG_SENSE_PIN
-void dbg_sense_pin(uint16_t always_sense_or_2nd_display_off) {
-  static int16_t always_sense_or_2nd_display_off_prev = -1;
-  if ((-1 == always_sense_or_2nd_display_off_prev) || (always_sense_or_2nd_display_off != always_sense_or_2nd_display_off_prev)) {
-    always_sense_or_2nd_display_off_prev = always_sense_or_2nd_display_off;
-    if (always_sense_or_2nd_display_off) {
-      Serial.println("TRUE == ALWAYS_ON");
-    } else {
-      Serial.println("FALSE == ALWAYS_ON");
-    }
-  }
-} // end dbg_sense_pin()
 
 //-----------------------------------------------------------------------------
 //
@@ -171,22 +130,14 @@ void user_loop(void) {
   uint16_t always_sense_or_2nd_display_off = (LOW == digitalRead(DISPLAY_FORCE_ON_PIN));
   uint8_t  pir_value = digitalRead(MOTION_SENSOR_PIN); // input is HIGH ~2 sec. when detect person; PIR sensor (D2)
 
-#if DEBUG_SENSE_PIN
-  dbg_sense_pin(always_sense_or_2nd_display_off);
-#endif // DEBUG_SENSE_PIN
-
   if (HIGH == digitalRead(SCNDEYE_1ST_EYE_PIN)) {
     // only do this code if primary HalloWing
-#if DEBUG_DSPLY_PIN
-    dbg_dsply_pin(millisec_now); // blink the button LED
-#else // not DEBUG_DSPLY_PIN
     // set button LED to show state of FORCE ALWAYS-ON
     if (always_sense_or_2nd_display_off) {
       digitalWrite(DISPLAY_FORCE_ON_LED_PIN, HIGH);
     } else {
       digitalWrite(DISPLAY_FORCE_ON_LED_PIN, LOW);
     }
-#endif // not DEBUG_DSPLY_PIN
   // end if primary HalloWing
   } else if (0 != millisec_for_reset_off) {
     // take care of possible reset of primary HalloWing if we are secondary
