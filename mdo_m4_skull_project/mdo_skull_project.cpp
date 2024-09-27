@@ -10,41 +10,52 @@
 //    Primary eye has no connect for SCNDEYE_1ST_EYE_PIN so it reads HIGH (due to internal pullup)
 //    It determines if the screen timeout should be extended and does so if needed
 //    It checks if the screen timeout expired and turns the screen backlight off if needed
-//      It copies the calculated display on/off value to the secondary Hallowing using SCNDEYE_DSPLY_ON_PIN
+//      It copies the calculated display on/off value to the secondary HalloWing using SCNDEYE_DSPLY_ON_PIN
 //    It sets the DISPLAY_FORCE_ON_LED_PIN output pin to light the button LED to show our ALWAYS-ON processing state
 // Secondary eye: it merely uses on/off from primary SCNDEYE_DSPLY_ON_PIN to turn secondary display on/off.
 //    Secondary eye has grounded SCNDEYE_1ST_EYE_PIN so it reads LOW
-//    Ssecondary eye reads DISPLAY_FORCE_ON_PIN (from primary SCNDEYE_DSPLY_ON_PIN) to turn display on or off
+//    Secondary eye reads DISPLAY_FORCE_ON_PIN (from primary SCNDEYE_DSPLY_ON_PIN) to turn display on or off
+//    Secondary eye outputs DISPLAY_FORCE_ON_LED_PIN to reset primary eye some time after reset
 //
 // This code is designed to be easy to read, not fast as possible. It is fast enough.
 //    Admittedly the debug code makes it a little messy, but it is useful when things don't work.
+//    Okay, all the differences between primary and secondary eye are really making it messy. Sorry.
 //
 
 #if 1 // enables this user file
 
 #include "globals.h"
 
-#define MOTION_SENSOR_PIN         A8   // (D2) PIR sensor on the "sensor" connector of Hallowing M4
+#define MOTION_SENSOR_PIN         A8   // (D2) PIR sensor on the "sensor" connector of HalloWing M4
 #define DISPLAY_FORCE_ON_LED_PIN   5   // output HIGH to LED if backlight forced ALWAYS-ON
 #define DISPLAY_FORCE_ON_PIN       6   // input primary eye: LOW if backlight forced ALWAYS-ON
                                        // input secondary eye: HIGH turns backlight ON, LOW turns OFF
-#define SCNDEYE_DSPLY_ON_PIN       9   // mirror Display On to other Hallowing if we are primary Hallowing
-#define SCNDEYE_1ST_EYE_PIN       10   // HIGH if primary Hallowing; LOW if secondary Hallowing
+#define SCNDEYE_DSPLY_ON_PIN       9   // mirror Display On to other HalloWing if we are primary HalloWing
+#define SCNDEYE_1ST_EYE_PIN       10   // HIGH if primary HalloWing; LOW if secondary HalloWing
 // NOTE:
 //   SCNDEYE_DSPLY_ON_PIN unused on 2nd eye - we use this fact in setup()
-//   DISPLAY_FORCE_ON_LED_PIN unused on 2nd eye - this fact is not used
 //   MOTION_SENSOR_PIN unused on 2nd eye - this fact is not used
 // NOTE:
 //   DISPLAY_FORCE_ON_PIN used differently on primary and secondary eye
 //      primary: used to sense state of button that sets ALWAYS-ON on or off
 //      secondary: used to sense output from primary from SCNDEYE_DSPLY_ON_PIN
+//   DISPLAY_FORCE_ON_LED_PIN  used differently on primary and secondary eye
+//      primary: used to power LED of button if ALWAYS-ON is on
+//      secondary: used to reset primary some time after power-on
+//         to solve power-on-surge causing primary eye to boot incorrectly
 
-static uint32_t millisec_for_off;
+static uint32_t millisec_for_off;  // primary - when to turn display off if no motion detected
+static uint32_t millisec_for_wait_2_reset; // secondary - when to assert reset to primary
+static uint32_t millisec_for_reset_off;    // secondary - when to de-assert reset to primary
 
-#define MSEC_ON_4_PIR 20000   // number of milliseconds to stay on past last PIR HIGH reading
-                              // this value chosen so there can be interaction and surprise with on/off
-#define MSEC_ON_4_ALWAYS 500  // number of milliseconds to stay on past last button forcing ALWAYS-ON
-                              // this value chosen so there is fairly fast reaction to button change
+#define MSEC_ON_4_PIR 20000    // number of milliseconds to stay on past last PIR HIGH reading
+                               // this value chosen so there can be interaction and surprise with on/off
+#define MSEC_ON_4_ALWAYS 500   // number of milliseconds to stay on past last button forcing ALWAYS-ON
+                               // this value chosen so there is fairly fast reaction to button change
+
+#define MSEC_ON_4_RESET 300    // number of milliseconds that secondary eye asserts reset to primary eye
+#define MSEC_WAIT_4_RESET 7000 // number of milliseconds that secondary eye waits before asserting reset
+
 
 #define DEBUG_DSPLY_PIN 0   // set to 1 to blink the button LED on and off
 #define DEBUG_SENSE_PIN 0   // set to 1 to print button changes on serial port
@@ -54,6 +65,7 @@ static uint32_t millisec_for_off;
 //-----------------------------------------------------------------------------
 //
 // dbg_dsply_pin() - blink the button LED on and off
+//    This routine designed to debug the primary HalloWing
 //
 #if DEBUG_DSPLY_PIN
 void dbg_dsply_pin(uint32_t now) {
@@ -74,6 +86,7 @@ void dbg_dsply_pin(uint32_t now) {
 //-----------------------------------------------------------------------------
 //
 // dbg_sense_pin() - tell when forcing ALWAYS-ON state changes
+//    This routine designed to debug the primary HalloWing
 //
 #if DEBUG_SENSE_PIN
 #endif // DEBUG_SENSE_PIN
@@ -100,15 +113,22 @@ void dbg_sense_pin(uint16_t always_sense_or_2nd_display_off) {
 // This code sets the pinMode for our pins and then puts the screen timeout in an initial state
 //
 void user_setup(void) {
-  pinMode(MOTION_SENSOR_PIN, INPUT_PULLUP);    // input HIGH momentarily when detect person; PIR sensor (D2)
-  pinMode(DISPLAY_FORCE_ON_PIN, INPUT_PULLUP); // input LOW if FORCE ALWAYS-ON
-  pinMode(DISPLAY_FORCE_ON_LED_PIN, OUTPUT);   // output HIGH to LED if FORCE ALWAYS-ON
-  pinMode(SCNDEYE_DSPLY_ON_PIN, OUTPUT);       // output mirror Display On to other Hallowing if we are primary Hallowing
-  pinMode(SCNDEYE_1ST_EYE_PIN, INPUT_PULLUP);  // input HIGH if primary Hallowing; LOW if secondary Hallowing
-  
-  millisec_for_off = MSEC_ON_4_PIR + millis(); // we start with display on; this is TRUE first time through loop()
-  digitalWrite(SCNDEYE_DSPLY_ON_PIN, HIGH);    //   not sure how long the rest of setup will take so start HIGH
-                                               //   SCNDEYE_DSPLY_ON_PIN unused on 2nd eye
+  uint32_t millisec_now;
+  pinMode(MOTION_SENSOR_PIN, INPUT_PULLUP);     // input HIGH momentarily when detect person; PIR sensor (D2)
+  pinMode(DISPLAY_FORCE_ON_PIN, INPUT_PULLUP);  // input LOW if FORCE ALWAYS-ON
+  pinMode(DISPLAY_FORCE_ON_LED_PIN, OUTPUT);    // output HIGH to LED if FORCE ALWAYS-ON
+  pinMode(SCNDEYE_DSPLY_ON_PIN, OUTPUT);        // output mirror Display On to other HalloWing if we are primary HalloWing
+  pinMode(SCNDEYE_1ST_EYE_PIN, INPUT_PULLUP);   // input HIGH if primary HalloWing; LOW if secondary HalloWing
+  digitalWrite(DISPLAY_FORCE_ON_LED_PIN, HIGH); // secondary turn off reset to primary eye; will turn on reset later
+                                                //     primary will turn button on for short time until user_loop()
+  digitalWrite(SCNDEYE_DSPLY_ON_PIN, HIGH);     // not sure how long the rest of setup will take so start HIGH
+                                                //     SCNDEYE_DSPLY_ON_PIN unused on 2nd eye
+
+  millisec_now = millis();
+  millisec_for_off = MSEC_ON_4_PIR + millisec_now; // we start with display on; this is TRUE first time through loop()
+  // setup vars for second HalloWing doing reset of primary HalloWing
+  millisec_for_wait_2_reset = MSEC_WAIT_4_RESET + millisec_now;
+  millisec_for_reset_off = MSEC_ON_4_RESET + millisec_for_wait_2_reset;
 }  // end user_setup()
 
 //-----------------------------------------------------------------------------
@@ -135,7 +155,7 @@ void user_setup(void) {
 //    It determines if the screen timeout should be extended and does so if needed
 //    It checks if the screen timeout expired and turns the screen backlight off if needed
 //    It sets the DISPLAY_FORCE_ON_LED_PIN output pin to make the button LED show our FORCE ALWAYS-ON processing state
-//    It copies the calculated display on/off value to the secondary Hallowing
+//    It copies the calculated display on/off value to the secondary HalloWing
 //        or (if secondary) uses on/off from primary to turn secondary display on/off.
 // This code is designed to be easy to read, not fast as possible. It is fast enough.
 //
@@ -147,31 +167,45 @@ void user_setup(void) {
 //    secondary eye reads display on/off from DISPLAY_FORCE_ON_PIN (connected to primary SCNDEYE_DSPLY_ON_PIN)
 //
 void user_loop(void) {
-  uint32_t now = millis();
+  uint32_t millisec_now = millis();
   uint16_t always_sense_or_2nd_display_off = (LOW == digitalRead(DISPLAY_FORCE_ON_PIN));
   uint8_t  pir_value = digitalRead(MOTION_SENSOR_PIN); // input is HIGH ~2 sec. when detect person; PIR sensor (D2)
-
 
 #if DEBUG_SENSE_PIN
   dbg_sense_pin(always_sense_or_2nd_display_off);
 #endif // DEBUG_SENSE_PIN
 
+  if (HIGH == digitalRead(SCNDEYE_1ST_EYE_PIN)) {
+    // only do this code if primary HalloWing
 #if DEBUG_DSPLY_PIN
-  dbg_dsply_pin(now); // blink the button LED
+    dbg_dsply_pin(millisec_now); // blink the button LED
 #else // not DEBUG_DSPLY_PIN
-  // set button LED to show state of FORCE ALWAYS-ON
-  if (always_sense_or_2nd_display_off) {
-    digitalWrite(DISPLAY_FORCE_ON_LED_PIN, HIGH);
-  } else {
-    digitalWrite(DISPLAY_FORCE_ON_LED_PIN, LOW);
-  }
+    // set button LED to show state of FORCE ALWAYS-ON
+    if (always_sense_or_2nd_display_off) {
+      digitalWrite(DISPLAY_FORCE_ON_LED_PIN, HIGH);
+    } else {
+      digitalWrite(DISPLAY_FORCE_ON_LED_PIN, LOW);
+    }
 #endif // not DEBUG_DSPLY_PIN
+  // end if primary HalloWing
+  } else if (0 != millisec_for_reset_off) {
+    // take care of possible reset of primary HalloWing if we are secondary
+    // we are secondary HalloWing and have not completed reset of primary yet
+    if (millisec_now >= millisec_for_reset_off) {
+      // reset is all done
+      digitalWrite(DISPLAY_FORCE_ON_LED_PIN, HIGH);
+      millisec_for_reset_off = millisec_for_wait_2_reset = 0;
+    } else if (millisec_now >= millisec_for_wait_2_reset) {
+      // time for reset
+      digitalWrite(DISPLAY_FORCE_ON_LED_PIN, LOW);
+    }
+  } // end else if we are secondary HalloWing and have not completed reset of primary yet
 
   // determine if we should extend  millisec_for_off
   if (always_sense_or_2nd_display_off) {
-    millisec_for_off = MSEC_ON_4_ALWAYS + now; // rapid refresh so respond quickly if user turns button off
+    millisec_for_off = MSEC_ON_4_ALWAYS + millisec_now; // rapid refresh so respond quickly if user turns button off
   } else if (HIGH == pir_value) {
-    millisec_for_off = MSEC_ON_4_PIR + now; // PIR detect causes long timeout
+    millisec_for_off = MSEC_ON_4_PIR + millisec_now; // PIR detect causes long timeout
   }
 
   // if later than millisec_for_off, turn backlight off otherwise turn it on
@@ -179,12 +213,12 @@ void user_loop(void) {
   //   battery would be discharged long before that
   // TODO - Will need to handle wraparound if powering with wall power.
   //
-  // if two Hallowing M4 and we are the primary one connected to PIR sensor
+  // if two HalloWing M4 and we are the primary one connected to PIR sensor
   //    mirror the display onvalue to the other one
   //
   if (HIGH == digitalRead(SCNDEYE_1ST_EYE_PIN)) {
-    // we are primary Hallowing; use timer and notify other side
-    if (now > millisec_for_off) {
+    // we are primary HalloWing; use timer and notify other side
+    if (millisec_now > millisec_for_off) {
       arcada.setBacklight(0); // turn screen off
       digitalWrite(SCNDEYE_DSPLY_ON_PIN, LOW);
     } else {
@@ -192,7 +226,7 @@ void user_loop(void) {
       digitalWrite(SCNDEYE_DSPLY_ON_PIN, HIGH);
     }
   } else {
-    // we are 2nd Hallowing; follow directions from primary
+    // we are 2nd HalloWing; follow directions from primary
     if (always_sense_or_2nd_display_off) {
       arcada.setBacklight(0); // turn screen off
     } else {
