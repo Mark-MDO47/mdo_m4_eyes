@@ -111,17 +111,17 @@ void user_setup(void) {
 //    It sets the SCNDEYE_DSPLY_ON_PIN to mirror the calculated display on/off value to the secondary HalloWing
 //        (if present)
 //
-void user_loop_primary(uint32_t millisec_now, uint16_t always_sense_or_2nd_display_off, uint8_t pir_value) {
+void user_loop_primary(uint32_t millisec_now, uint8_t force_dsply_always_on, uint8_t pir_value) {
 
   // set button LED to show state of FORCE ALWAYS-ON
-  if (always_sense_or_2nd_display_off) {
+  if (force_dsply_always_on) {
     digitalWrite(DISPLAY_FORCE_ON_LED_PIN, HIGH);
   } else {
     digitalWrite(DISPLAY_FORCE_ON_LED_PIN, LOW);
   }
 
-  // determine if we should extend  millisec_for_off
-  if (always_sense_or_2nd_display_off) {
+  // determine if we should extend  millisec_for_off - I know, could include with "if" above
+  if (force_dsply_always_on) {
     millisec_for_off = MSEC_ON_4_ALWAYS + millisec_now; // rapid refresh so respond quickly if user turns button off
   } else if (HIGH == pir_value) {
     millisec_for_off = MSEC_ON_4_PIR + millisec_now; // PIR detect causes long timeout
@@ -164,7 +164,7 @@ void user_loop_primary(uint32_t millisec_now, uint16_t always_sense_or_2nd_displ
 //       the Primary Hallowing. Times to do this are set in user_setup().
 //   Monitor DISPLAY_FORCE_ON_PIN (from primary SCNDEYE_DSPLY_ON_PIN) and turn our display on or off based on that.
 //
-void user_loop_secondary(uint32_t millisec_now, uint16_t always_sense_or_2nd_display_off, uint8_t pir_value) {
+void user_loop_secondary(uint32_t millisec_now, uint8_t second_display_off, uint8_t pir_value) {
 
   // take care of possible reset of primary HalloWing
   if (0 != millisec_for_reset_off) {
@@ -179,8 +179,8 @@ void user_loop_secondary(uint32_t millisec_now, uint16_t always_sense_or_2nd_dis
     } // end if actively resetting primary
   } // end if stll more to do for reset of primary
 
-  // we are 2nd HalloWing; follow screen backlight instruc tions from primary
-  if (always_sense_or_2nd_display_off) {
+  // we are 2nd HalloWing; follow screen backlight instructions from primary
+  if (second_display_off) {
     arcada.setBacklight(0); // turn screen off
   } else {
     arcada.setBacklight(255); // turn screen on
@@ -212,7 +212,7 @@ void user_loop_secondary(uint32_t millisec_now, uint16_t always_sense_or_2nd_dis
 //
 void user_loop(void) {
   uint32_t millisec_now = millis();
-  uint16_t always_sense_or_2nd_display_off = (LOW == digitalRead(DISPLAY_FORCE_ON_PIN));
+  uint8_t always_sense_or_2nd_display_off = (LOW == digitalRead(DISPLAY_FORCE_ON_PIN));
   uint8_t  pir_value = digitalRead(MOTION_SENSOR_PIN); // input is HIGH ~2 sec. when detect person; PIR sensor (D2)
 
   if (HIGH == digitalRead(SCNDEYE_1ST_EYE_PIN)) {
