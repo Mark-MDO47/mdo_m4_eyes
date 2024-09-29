@@ -164,7 +164,7 @@ void user_loop_primary(uint32_t millisec_now, uint8_t force_dsply_always_on, uin
 //       the Primary Hallowing. Times to do this are set in user_setup().
 //   Monitor DISPLAY_FORCE_ON_PIN (from primary SCNDEYE_DSPLY_ON_PIN) and turn our display on or off based on that.
 //
-void user_loop_secondary(uint32_t millisec_now, uint8_t second_display_off, uint8_t pir_value) {
+void user_loop_secondary(uint32_t millisec_now, uint8_t second_display_off) {
 
   // take care of possible reset of primary HalloWing
   if (0 != millisec_for_reset_off) {
@@ -220,7 +220,7 @@ void user_loop(void) {
     user_loop_primary(millisec_now, always_sense_or_2nd_display_off, pir_value);
   } else {
     // do this code if secondary HalloWing
-    user_loop_secondary(millisec_now, always_sense_or_2nd_display_off, pir_value);
+    user_loop_secondary(millisec_now, always_sense_or_2nd_display_off);
   }
 
 }  // end user_loop()
